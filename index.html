@@ -4,105 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blog Đơn Giản</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            line-height: 1.6;
-        }
-        .header {
-            text-align: center;
-            background-color: #f4f4f4;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-        }
-        .post-form {
-            background-color: #f9f9f9;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-        }
-        .post {
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            background-color: white;
-        }
-        .post-title {
-            color: #333;
-            margin-bottom: 10px;
-        }
-        .post-date {
-            color: #666;
-            font-size: 0.9em;
-            margin-bottom: 15px;
-        }
-        .post-content {
-            margin-bottom: 15px;
-        }
-        .post-actions {
-            text-align: right;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-left: 5px;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        .delete-btn {
-            background-color: #dc3545;
-        }
-        .delete-btn:hover {
-            background-color: #c82333;
-        }
-        .edit-btn {
-            background-color: #28a745;
-        }
-        .edit-btn:hover {
-            background-color: #1e7e34;
-        }
-        input, textarea {
-            width: 100%;
-            padding: 10px;
-            margin: 5px 0;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-sizing: border-box;
-        }
-        textarea {
-            min-height: 100px;
-            resize: vertical;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="header">
-        <h1>📝 Blog Đơn Giản</h1>
-        <p>Quản lý bài viết của bạn một cách dễ dàng</p>
-    </div>
+    <div class="container">
+        <div class="header">
+            <h1>📝 Blog Đơn Giản</h1>
+            <p>Quản lý bài viết của bạn một cách dễ dàng</p>
+            <div class="import-export mt-20">
+                <input type="file" id="fileInput" accept=".txt" class="hidden" onchange="blogManager.loadFromFile(event)">
+                <button onclick="document.getElementById('fileInput').click()" class="btn btn-secondary">
+                    📁 Nhập Tập Tin
+                </button>
+                <button onclick="blogManager.exportAllPosts()" class="btn btn-secondary">
+                    📋 Xuất Tập Tin
+                </button>
+            </div>
+        </div>
 
-    <div class="post-form">
-        <h2 id="form-title">Thêm Bài Viết Mới</h2>
-        <form id="postForm">
-            <input type="text" id="postTitle" placeholder="Tiêu đề bài viết" required>
-            <textarea id="postContent" placeholder="Nội dung bài viết" required></textarea>
-            <button type="submit" id="submitBtn">Thêm Bài Viết</button>
-            <button type="button" id="cancelBtn" style="display: none; background-color: #6c757d;">Hủy</button>
-        </form>
-    </div>
+        <div class="post-form">
+            <h2 id="form-title">Thêm Bài Viết Mới</h2>
+            <form id="postForm">
+                <div class="form-group">
+                    <label for="postTitle">Tiêu đề bài viết</label>
+                    <input type="text" id="postTitle" class="form-control" placeholder="Nhập tiêu đề..." required>
+                </div>
+                <div class="form-group">
+                    <label for="postContent">Nội dung bài viết</label>
+                    <textarea id="postContent" class="form-control textarea" placeholder="Viết nội dung bài viết của bạn ở đây..." required></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" id="submitBtn" class="btn btn-primary">
+                        ✨ Thêm Bài Viết
+                    </button>
+                    <button type="button" id="cancelBtn" class="btn btn-secondary hidden">
+                        ❌ Hủy
+                    </button>
+                </div>
+            </form>
+        </div>
 
-    <div id="posts-container">
-        <!-- Bài viết sẽ được hiển thị ở đây -->
+        <div class="posts-container">
+            <div id="posts-container">
+                <!-- Bài viết sẽ được hiển thị ở đây -->
+            </div>
+        </div>
     </div>
 
     <script src="blog.js"></script>

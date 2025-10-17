@@ -31,14 +31,16 @@ class BlogManager {
         const content = document.getElementById('postContent').value.trim();
 
         if (!title || !content) {
-            alert('Vui lòng điền đầy đủ thông tin!');
+            this.showNotification('Vui lòng điền đầy đủ thông tin!', 'warning');
             return;
         }
 
         if (this.currentEditId !== null) {
             this.updatePost(this.currentEditId, title, content);
+            this.showNotification('Cập nhật bài viết thành công!', 'success');
         } else {
             this.addPost(title, content);
+            this.showNotification('Thêm bài viết thành công!', 'success');
         }
 
         this.clearForm();
@@ -72,6 +74,7 @@ class BlogManager {
             this.posts = this.posts.filter(post => post.id !== id);
             this.renderPosts();
             this.savePosts();
+            this.showNotification('Xóa bài viết thành công!', 'success');
         }
     }
 
@@ -81,8 +84,8 @@ class BlogManager {
             document.getElementById('postTitle').value = post.title;
             document.getElementById('postContent').value = post.content;
             document.getElementById('form-title').textContent = 'Sửa Bài Viết';
-            document.getElementById('submitBtn').textContent = 'Cập Nhật';
-            document.getElementById('cancelBtn').style.display = 'inline-block';
+            document.getElementById('submitBtn').innerHTML = '✏️ Cập Nhật';
+            document.getElementById('cancelBtn').classList.remove('hidden');
             this.currentEditId = id;
             
             // Cuộn lên form
@@ -99,28 +102,38 @@ class BlogManager {
         document.getElementById('postTitle').value = '';
         document.getElementById('postContent').value = '';
         document.getElementById('form-title').textContent = 'Thêm Bài Viết Mới';
-        document.getElementById('submitBtn').textContent = 'Thêm Bài Viết';
-        document.getElementById('cancelBtn').style.display = 'none';
+        document.getElementById('submitBtn').innerHTML = '✨ Thêm Bài Viết';
+        document.getElementById('cancelBtn').classList.add('hidden');
     }
 
     renderPosts() {
         const container = document.getElementById('posts-container');
         
         if (this.posts.length === 0) {
-            container.innerHTML = '<div class="post"><p>Chưa có bài viết nào. Hãy thêm bài viết đầu tiên của bạn!</p></div>';
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="icon">📝</div>
+                    <h3>Chưa có bài viết nào</h3>
+                    <p>Hãy thêm bài viết đầu tiên của bạn!</p>
+                </div>
+            `;
             return;
         }
 
-        container.innerHTML = this.posts.map(post => `
-            <div class="post">
-                <h3 class="post-title">${this.escapeHtml(post.title)}</h3>
-                <div class="post-date">📅 ${post.date}</div>
+        container.innerHTML = this.posts.map((post, index) => `
+            <div class="post fade-in" style="animation-delay: ${index * 0.1}s">
+                <div class="post-header">
+                    <h3 class="post-title">${this.escapeHtml(post.title)}</h3>
+                    <div class="post-date">
+                        📅 ${post.date}
+                    </div>
+                </div>
                 <div class="post-content">${this.escapeHtml(post.content).replace(/\n/g, '<br>')}</div>
                 <div class="post-actions">
-                    <button class="edit-btn" onclick="blogManager.editPost(${post.id})">
+                    <button class="btn btn-success" onclick="blogManager.editPost(${post.id})">
                         ✏️ Sửa
                     </button>
-                    <button class="delete-btn" onclick="blogManager.deletePost(${post.id})">
+                    <button class="btn btn-danger" onclick="blogManager.deletePost(${post.id})">
                         🗑️ Xóa
                     </button>
                 </div>
@@ -136,22 +149,12 @@ class BlogManager {
 
     savePosts() {
         try {
-            const dataStr = this.posts.map(post => 
-                `ID: ${post.id}\n` +
-                `Tiêu đề: ${post.title}\n` +
-                `Ngày: ${post.date}\n` +
-                `Nội dung: ${post.content}\n` +
-                '=' + '='.repeat(50) + '\n'
-            ).join('\n');
-            
-            // Lưu vào localStorage (mô phỏng lưu file)
+            // Lưu vào localStorage
             localStorage.setItem('blogPosts', JSON.stringify(this.posts));
-            
-            // Tạo file txt và tải xuống
-            this.downloadPostsAsFile(dataStr);
             
         } catch (error) {
             console.error('Lỗi khi lưu bài viết:', error);
+            this.showNotification('Lỗi khi lưu dữ liệu!', 'error');
         }
     }
 
@@ -184,35 +187,47 @@ class BlogManager {
         const file = event.target.files[0];
         if (!file) return;
 
+        if (!file.name.endsWith('.txt')) {
+            this.showNotification('Vui lòng chọn file .txt!', 'warning');
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
                 const content = e.target.result;
                 this.parsePostsFromFile(content);
                 this.renderPosts();
+                this.showNotification('Nhập dữ liệu thành công!', 'success');
             } catch (error) {
-                alert('Lỗi khi đọc file: ' + error.message);
+                this.showNotification('Lỗi khi đọc file: ' + error.message, 'error');
             }
         };
         reader.readAsText(file, 'UTF-8');
+        
+        // Reset file input
+        event.target.value = '';
     }
 
     parsePostsFromFile(content) {
-        // Đây là logic đơn giản để parse file txt
-        // Bạn có thể cải tiến thêm
         const posts = [];
         const sections = content.split('=' + '='.repeat(50));
         
         sections.forEach(section => {
             const lines = section.trim().split('\n');
             if (lines.length >= 4) {
-                const id = lines[0].replace('ID: ', '');
-                const title = lines[1].replace('Tiêu đề: ', '');
-                const date = lines[2].replace('Ngày: ', '');
-                const content = lines[3].replace('Nội dung: ', '');
+                const id = lines[0].replace('ID: ', '').trim();
+                const title = lines[1].replace('Tiêu đề: ', '').trim();
+                const date = lines[2].replace('Ngày: ', '').trim();
+                const content = lines.slice(3).join('\n').replace('Nội dung: ', '').trim();
                 
                 if (id && title && content) {
-                    posts.push({ id: parseInt(id), title, date, content });
+                    posts.push({ 
+                        id: parseInt(id) || Date.now() + Math.random(), 
+                        title, 
+                        date, 
+                        content 
+                    });
                 }
             }
         });
@@ -224,7 +239,7 @@ class BlogManager {
     // Xuất tất cả bài viết
     exportAllPosts() {
         if (this.posts.length === 0) {
-            alert('Không có bài viết nào để xuất!');
+            this.showNotification('Không có bài viết nào để xuất!', 'warning');
             return;
         }
         
@@ -237,27 +252,84 @@ class BlogManager {
         ).join('\n');
         
         this.downloadPostsAsFile(dataStr);
+        this.showNotification('Xuất file thành công!', 'success');
+    }
+
+    // Hiển thị thông báo
+    showNotification(message, type = 'info') {
+        // Tạo hoặc tìm container thông báo
+        let notificationContainer = document.querySelector('.notification-container');
+        if (!notificationContainer) {
+            notificationContainer = document.createElement('div');
+            notificationContainer.className = 'notification-container';
+            notificationContainer.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 1000;
+                pointer-events: none;
+            `;
+            document.body.appendChild(notificationContainer);
+        }
+
+        // Tạo thông báo
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.style.cssText = `
+            background: ${this.getNotificationColor(type)};
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateX(350px);
+            transition: all 0.3s ease;
+            pointer-events: auto;
+            cursor: pointer;
+        `;
+        notification.textContent = message;
+
+        notificationContainer.appendChild(notification);
+
+        // Hiệu ứng slide in
+        setTimeout(() => {
+            notification.style.transform = 'translateX(0)';
+        }, 10);
+
+        // Tự động ẩn sau 3 giây
+        setTimeout(() => {
+            this.hideNotification(notification);
+        }, 3000);
+
+        // Click để ẩn
+        notification.addEventListener('click', () => {
+            this.hideNotification(notification);
+        });
+    }
+
+    hideNotification(notification) {
+        notification.style.transform = 'translateX(350px)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }
+
+    getNotificationColor(type) {
+        const colors = {
+            success: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+            error: 'linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%)',
+            warning: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            info: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+        };
+        return colors[type] || colors.info;
     }
 }
 
-// Khởi tạo blog manager
-const blogManager = new BlogManager();
+// Khởi tạo blog manager khi trang đã tải
+let blogManager;
 
-// Thêm event listener cho việc tải file
 document.addEventListener('DOMContentLoaded', () => {
-    // Tạo nút import/export (tùy chọn)
-    const header = document.querySelector('.header');
-    const importExportDiv = document.createElement('div');
-    importExportDiv.innerHTML = `
-        <div style="margin-top: 15px;">
-            <input type="file" id="fileInput" accept=".txt" style="display: none;" onchange="blogManager.loadFromFile(event)">
-            <button onclick="document.getElementById('fileInput').click()" style="background-color: #17a2b8;">
-                📁 Nhập Tập Tin
-            </button>
-            <button onclick="blogManager.exportAllPosts()" style="background-color: #6f42c1;">
-                📋 Xuất Tập Tin
-            </button>
-        </div>
-    `;
-    header.appendChild(importExportDiv);
+    blogManager = new BlogManager();
 });
